@@ -17,7 +17,7 @@ import { PortsGlobal } from '../PortsGlobal';
 
 class SpreadSheetClient {
     private _serverPort: number = PortsGlobal.serverPort;
-    private _baseURL: string = `http://pencil.local:${this._serverPort}`;
+    private _baseURL: string = `http://localhost:${this._serverPort}`;
     private _userName: string = 'juancho';
     private _documentName: string = 'test';
     private _document: DocumentTransport;
@@ -297,6 +297,7 @@ class SpreadSheetClient {
         // put the user name in the body
         const userName = user;
         const fetchURL = `${this._baseURL}/documents/${name}`;
+
         fetch(fetchURL, {
             method: 'PUT',
             headers: {
