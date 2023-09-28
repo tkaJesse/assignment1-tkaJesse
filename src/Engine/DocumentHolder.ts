@@ -202,14 +202,18 @@ export class DocumentHolder {
 
     public clearFormula(docName: string, user: string): string {
         let document = this._documents.get(docName);
+        console.log('clear formula1', docName, user);
         if (document) {
             document.clearFormula(user);
             this._saveDocument(docName);
             // get the json string for the controler
             const documentJSON = this.getDocumentJSON(docName, user);
             return documentJSON;
+        } else{
+            alert("Document not found");
+           throw new Error('Document not found'); 
         }
-        throw new Error('Document not found');
+        
     }
 
     public getFormulaString(name: string, user: string): string {
