@@ -125,7 +125,12 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
     updateDisplayValues();
 
   }
-
+  /**
+   * This function is called when a user tries to click cell without logging in
+   */
+  function nonLogonAlert(){
+    alert("You must logon to use this feature");
+  }
 
   /**
    * 
@@ -136,6 +141,10 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
    * If the edit status is false then it will ask the machine to update the current formula.
    */
   function onCellClick(event: React.MouseEvent<HTMLButtonElement>): void {
+
+    if (!userName || userName === "") {
+      nonLogonAlert();
+    }
 
     const cellLabel = event.currentTarget.getAttribute("cell-label");
     // calculate the current row and column of the clicked on cell
