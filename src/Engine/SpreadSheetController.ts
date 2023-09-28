@@ -309,16 +309,19 @@ export class SpreadSheetController {
    */
   clearFormula(user: string): void {
     if (!this._contributingUsers.has(user)) {
+      alert("no user found");
       return;
     }
     const userEditing = this._contributingUsers.get(user);
     if (!userEditing) {
+      alert("user not editing");
       return;
     }
     if (userEditing.cellLabel === '') {
+      alert("no cell label");
       return;
     }
-
+    console.log('clear formula: spreadsheetcontroller');
     userEditing.formulaBuilder.setFormula([]);
     let cellBeingEdited = this._contributingUsers.get(user)?.cellLabel;
 
@@ -391,6 +394,7 @@ export class SpreadSheetController {
       return '';
     }
     let cell = this._memory.getCellByLabel(userEditing.cellLabel);
+
     let displayString = cell.getDisplayString();
 
     return displayString;
