@@ -50,7 +50,6 @@ describe("FormulaEvaluator", () => {
     describe("when the contains a single number", () => {
       it("returns the number", () => {
         const formula: FormulaType = ["1"];
-        const memory = new SheetMemory(5, 5);
 
         recalc.evaluate(formula)
         let result = recalc.result;
@@ -92,7 +91,7 @@ describe("FormulaEvaluator", () => {
       describe("when the operator is +", () => {
         it("returns the sum of the numbers", () => {
           const formula: FormulaType = ["1", "+", "2"];
-          const memory = new SheetMemory(5, 5);
+
           recalc.evaluate(formula);
 
           let result = recalc.result;
@@ -106,13 +105,12 @@ describe("FormulaEvaluator", () => {
       describe("when the operator is -", () => {
         it("returns the difference of the numbers", () => {
           const formula: FormulaType = ["1", "-", "2"];
-          const memory = new SheetMemory(5, 5);
           recalc.evaluate(formula);
 
           let result = recalc.result;
           let error = recalc.error;
 
-          expect(result).toEqual(3);
+          expect(result).toEqual(-1);
           expect(error).toEqual("");
         });
       });
@@ -122,13 +120,12 @@ describe("FormulaEvaluator", () => {
       describe("when the operator is *", () => {
         it("returns the product of the numbers", () => {
           const formula: FormulaType = ["1", "*", "2"];
-          const memory = new SheetMemory(5, 5);
           recalc.evaluate(formula);
 
           let result = recalc.result;
           let error = recalc.error;
 
-          expect(result).toEqual(3);
+          expect(result).toEqual(2);
           expect(error).toEqual("");
         });
       });
@@ -310,7 +307,7 @@ describe("FormulaEvaluator", () => {
       });
     });
 
-    describe("when the formula is 1 * ) ", () => {
+    describe("when the formula is 1 * )", () => {
       it("returns the number", () => {
         const formula = ["1", "+", "+"];
 
