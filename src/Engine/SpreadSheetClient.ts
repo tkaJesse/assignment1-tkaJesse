@@ -28,7 +28,7 @@ class SpreadSheetClient {
         this.getDocument(this._documentName, this._userName);
 
         this._document = this._initializeBlankDocument();
-        this._timedFetch();
+        this._timedFetch(this._documentName);
     }
 
     private _initializeBlankDocument(): DocumentTransport {
@@ -58,7 +58,10 @@ class SpreadSheetClient {
      * 
      * Every .1 seconds, fetch the document from the server
      */
-    private async _timedFetch(): Promise<Response> {
+    private async _timedFetch(name: string | undefined): Promise<Response> {
+        if (!name){
+            name = this._documentName;
+        }
         const url = `${this._baseURL}/documents/${this._documentName}`;
         const options = {
             method: 'PUT',
@@ -73,7 +76,7 @@ class SpreadSheetClient {
                 fetch(url, options)
                     .then(response => {
                         this.getDocument(this._documentName, this._userName);
-                        this._timedFetch();
+                        //this._timedFetch(this._documentName);
                         resolve(response);
                     })
                     .catch(error => {
@@ -299,6 +302,21 @@ class SpreadSheetClient {
         });
         
     }
+    /**
+     * 
+     * return the names of all the documents on the server
+     */
+    public getAllDocumentNames(): string[] {
+        const fetchURL = `${this._baseURL}/documents`;
+        fetch(fetchURL)
+            .then(response => {
+                return response.json() as Promise<string[]>;
+            }).then((documentNames: string[]) => {
+                return documentNames;
+            });
+        return [];
+
+    }
 
 
 
@@ -314,7 +332,7 @@ class SpreadSheetClient {
         // put the user name in the body
         const userName = user;
         const fetchURL = `${this._baseURL}/documents/${name}`;
-
+        console.log("fetchURL2222", fetchURL);
         fetch(fetchURL, {
             method: 'PUT',
             headers: {

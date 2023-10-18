@@ -4,7 +4,6 @@ import Status from "./Status";
 import KeyPad from "./KeyPad";
 import SpreadSheetClient from "../Engine/SpreadSheetClient";
 import SheetHolder from "./SheetHolder";
-
 import { ButtonNames } from "../Engine/GlobalDefinitions";
 
 
@@ -29,11 +28,15 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
   const [currentCell, setCurrentCell] = useState(spreadSheetClient.getWorkingCellLabel());
   const [currentlyEditing, setCurrentlyEditing] = useState(spreadSheetClient.getEditStatus());
   const [userName, setUserName] = useState(window.sessionStorage.getItem('userName') || "");
+  const [docName, setDocName] = useState(documentName);
+  // const [documentNames, setDocumentName] = useState(spreadSheetClient.getAllDocumentNames());
 
 
   function updateDisplayValues(): void {
     spreadSheetClient.userName = userName;
-    spreadSheetClient.documentName = documentName;
+    // spreadSheetClient.documentName = documentNames;
+    spreadSheetClient.documentName = docName;
+    console.log("doc name is: ", docName);
     setFormulaString(spreadSheetClient.getFormulaString());
     setResultString(spreadSheetClient.getResultString());
     setStatusString(spreadSheetClient.getEditStatusString());
