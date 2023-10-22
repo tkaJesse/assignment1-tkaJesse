@@ -8,19 +8,24 @@
  * getDocument(name: string, user: string): Promise<Document>
  */
 
-import { DocumentTransport, CellTransport, CellTransportMap, ErrorMessages } from '../Engine/GlobalDefinitions';
+import { DocumentTransport, CellTransport, CellTransportMap, ErrorMessages, UserEditing } from '../Engine/GlobalDefinitions';
 import { Cell } from '../Engine/Cell';
-
-import { PortsGlobal } from '../PortsGlobal';
+import { PortsGlobal, LOCAL_SERVER_URL, RENDER_SERVER_URL } from '../../src/ServerDataDefinitions';
 
 
 
 class SpreadSheetClient {
+    // get the environment variable SERVER_LOCAL 
+    // if it is true then use the local server
+    // otherwise use the render server
+
+
     private _serverPort: number = PortsGlobal.serverPort;
-    private _baseURL: string = `http://localhost:${this._serverPort}`;
+    private _baseURL: string = `${LOCAL_SERVER_URL}:${this._serverPort}`;
     private _userName: string = 'juancho';
     private _documentName: string = 'test';
     private _document: DocumentTransport;
+    private _server: string = '';
 
     constructor(documentName: string, userName: string) {
         this._userName = userName;
@@ -40,6 +45,7 @@ class SpreadSheetClient {
             currentCell: 'A1',
             isEditing: false,
             cells: new Map<string, CellTransport>(),
+            contributingUsers: [],
         };
         for (let row = 0; row < document.rows; row++) {
             for (let column = 0; column < document.columns; column++) {
@@ -48,6 +54,7 @@ class SpreadSheetClient {
                     formula: [],
                     value: 0,
                     error: ErrorMessages.emptyFormula,
+                    editing: '',
                 };
                 document.cells.set(cellName, cell);
             }
@@ -76,7 +83,7 @@ class SpreadSheetClient {
                 fetch(url, options)
                     .then(response => {
                         this.getDocument(this._documentName, this._userName);
-                        //this._timedFetch(this._documentName);
+                        this._timedFetch(this._documentName);
                         resolve(response);
                     })
                     .catch(error => {
@@ -152,8 +159,9 @@ class SpreadSheetClient {
             for (let column = 0; column < columns; column++) {
                 const cellName = Cell.columnRowToCell(column, row)!;
                 const cell = cells.get(cellName) as CellTransport;
+                console.log("cellreal: ", cell);
                 if (cell) {
-                    sheetDisplayStrings[row][column] = this._getCellValue(cell);
+                    sheetDisplayStrings[row][column] = this._getCellValue(cell) + "|" + cell.editing;
                 } else {
                     sheetDisplayStrings[row][column] = 'xxx';
                 }
@@ -357,6 +365,7 @@ class SpreadSheetClient {
         const columns = document.columns;
         const rows = document.rows;
         const isEditing = document.isEditing;
+        const contributingUsers = document.contributingUsers;
 
 
 
@@ -370,6 +379,7 @@ class SpreadSheetClient {
             rows: rows,
             isEditing: isEditing,
             cells: new Map<string, CellTransport>(),
+            contributingUsers: contributingUsers,
         };
         // create the cells
         const cells = document.cells as unknown as CellTransportMap;
@@ -382,10 +392,43 @@ class SpreadSheetClient {
                 formula: cellTransport.formula,
                 value: cellTransport.value,
                 error: cellTransport.error,
+                editing: this._getEditorString(contributingUsers, cellName),
             };
+            console.log("cellUpdateDoc: ", cell);
             this._document!.cells.set(cellName, cell);
         }
 
+    }
+    /**
+     * Server selector for the fetch
+     */
+    setServerSelector(server: string): void {
+    if (server === this._server) {
+        return;
+    }
+    if (server === 'localhost') {
+        this._baseURL = `${LOCAL_SERVER_URL}:${this._serverPort}`;
+    } else {
+        this._baseURL = RENDER_SERVER_URL;
+    }
+
+    this.getDocument(this._documentName, this._userName);
+    this._server = server;
+
+}
+
+    // utility function to get the user for the cell
+    private _getEditorString(contributingUsers: UserEditing[], cellLabel: string): string {
+        console.log("contributingUsers: ", contributingUsers);
+        if (!contributingUsers){
+            return '';
+        }
+        for (let user of contributingUsers) {
+            if (user.cell === cellLabel) {
+                return user.user;
+            }
+        }
+        return '';
     }
 
 }

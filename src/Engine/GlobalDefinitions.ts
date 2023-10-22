@@ -1,4 +1,3 @@
-
 export const ErrorMessages = {
   partial: "#ERR",
   divideByZero: "#DIV/0!",
@@ -24,6 +23,13 @@ export interface CellTransport {
   formula: string[];
   value: number;
   error: string;
+  editing: string;
+}
+
+// add export UserEditing
+export interface UserEditing {
+  user: string;
+  cell: string;
 }
 
 export interface CellTransportMap {
@@ -37,5 +43,5 @@ export interface DocumentTransport {
   result: string;
   currentCell: string;
   isEditing: boolean;
+  contributingUsers: UserEditing[];
 }
-
