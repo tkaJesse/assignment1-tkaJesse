@@ -104,7 +104,7 @@ async function runTests() {
 
     // first, get the list of documents
     const documents = await getDocuments();
-    console.log('documents', documents);
+    console.log('documents list', documents);
 
     // ask for a cell in the first document for user1
 

@@ -8,10 +8,10 @@
  * getDocument(name: string, user: string): Promise<Document>
  */
 
-import { DocumentTransport, CellTransport, CellTransportMap, ErrorMessages } from '../Engine/GlobalDefinitions';
+import { DocumentTransport, CellTransport, CellTransportMap, ErrorMessages, UserEditing } from '../Engine/GlobalDefinitions';
 import { Cell } from '../Engine/Cell';
 
-import { PortsGlobal } from '../PortsGlobal';
+import { PortsGlobal, LOCAL_SERVER_URL, RENDER_SERVER_URL } from '../ServerDataDefinitions';
 
 
 
@@ -21,14 +21,15 @@ class SpreadSheetClient {
     private _userName: string = 'juancho';
     private _documentName: string = 'test';
     private _document: DocumentTransport;
+    private _server: string = '';
 
     constructor(documentName: string, userName: string) {
         this._userName = userName;
         this._documentName = documentName;
-        this.getDocument(this._documentName, this._userName);
-
+        //this.getDocument(this._documentName, this._userName);
+        this.setServerSelector('localhost');
         this._document = this._initializeBlankDocument();
-        this._timedFetch();
+        this._timedFetch(this._documentName);
     }
 
     private _initializeBlankDocument(): DocumentTransport {
@@ -40,6 +41,7 @@ class SpreadSheetClient {
             currentCell: 'A1',
             isEditing: false,
             cells: new Map<string, CellTransport>(),
+            contributingUsers: [],
         };
         for (let row = 0; row < document.rows; row++) {
             for (let column = 0; column < document.columns; column++) {
@@ -48,6 +50,7 @@ class SpreadSheetClient {
                     formula: [],
                     value: 0,
                     error: ErrorMessages.emptyFormula,
+                    editing: '',
                 };
                 document.cells.set(cellName, cell);
             }
@@ -58,7 +61,10 @@ class SpreadSheetClient {
      * 
      * Every .1 seconds, fetch the document from the server
      */
-    private async _timedFetch(): Promise<Response> {
+    private async _timedFetch(name: string | undefined): Promise<Response> {
+        if (!name){
+            name = this._documentName;
+        }
         const url = `${this._baseURL}/documents/${this._documentName}`;
         const options = {
             method: 'PUT',
@@ -73,7 +79,7 @@ class SpreadSheetClient {
                 fetch(url, options)
                     .then(response => {
                         this.getDocument(this._documentName, this._userName);
-                        this._timedFetch();
+                        this._timedFetch(this._documentName);
                         resolve(response);
                     })
                     .catch(error => {
@@ -103,6 +109,7 @@ class SpreadSheetClient {
         if (!this._document) {
             return '';
         }
+
         const formula = this._document.formula;
         if (formula) {
             return formula
@@ -114,7 +121,7 @@ class SpreadSheetClient {
         if (!this._document) {
             return '';
         }
-        console.log("thisd: ",this._document);
+        //console.log("thisd: ",this._document);
 
         const result = this._document.result;
         if (result) {
@@ -150,7 +157,7 @@ class SpreadSheetClient {
                 const cellName = Cell.columnRowToCell(column, row)!;
                 const cell = cells.get(cellName) as CellTransport;
                 if (cell) {
-                    sheetDisplayStrings[row][column] = this._getCellValue(cell);
+                    sheetDisplayStrings[row][column] = this._getCellValue(cell) + "|" + cell.editing;
                 } else {
                     sheetDisplayStrings[row][column] = 'xxx';
                 }
@@ -212,17 +219,28 @@ class SpreadSheetClient {
     public addToken(token: string): void {
         if (token === '/') {
             token = '%2F';
+        }else if (token === "1/x") {
+            token = "divideItself"
+        } else if (token === "+/-") {
+            token = "negate"
+        } else if (token === ".") {
+            token ="."
         }
+        const body = {
+            "userName": this._userName,
+            "token": token
+        };
         const requestAddTokenURL = `${this._baseURL}/document/addtoken/${this._documentName}/${token}`;
+        console.log("requestAddTokenURL", requestAddTokenURL);
         fetch(requestAddTokenURL, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ "userName": this._userName })
+            body: JSON.stringify(body)
         })
             .then(response => {
-
+                console.log("what",response);
                 return response.json() as Promise<DocumentTransport>;
             }
             ).then((document: DocumentTransport) => {
@@ -299,6 +317,21 @@ class SpreadSheetClient {
         });
         
     }
+    /**
+     * 
+     * return the names of all the documents on the server
+     */
+    public getAllDocumentNames(): string[] {
+        const fetchURL = `${this._baseURL}/documents`;
+        fetch(fetchURL)
+            .then(response => {
+                return response.json() as Promise<string[]>;
+            }).then((documentNames: string[]) => {
+                return documentNames;
+            });
+        return [];
+
+    }
 
 
 
@@ -314,7 +347,7 @@ class SpreadSheetClient {
         // put the user name in the body
         const userName = user;
         const fetchURL = `${this._baseURL}/documents/${name}`;
-
+        // console.log("fetchURL2222", fetchURL);
         fetch(fetchURL, {
             method: 'PUT',
             headers: {
@@ -339,6 +372,7 @@ class SpreadSheetClient {
         const columns = document.columns;
         const rows = document.rows;
         const isEditing = document.isEditing;
+        const contributingUsers = document.contributingUsers;
 
 
 
@@ -346,12 +380,12 @@ class SpreadSheetClient {
         this._document = {
             formula: formula,
             result: result,
-
             currentCell: currentCell,
             columns: columns,
             rows: rows,
             isEditing: isEditing,
             cells: new Map<string, CellTransport>(),
+            contributingUsers: contributingUsers,
         };
         // create the cells
         const cells = document.cells as unknown as CellTransportMap;
@@ -364,11 +398,40 @@ class SpreadSheetClient {
                 formula: cellTransport.formula,
                 value: cellTransport.value,
                 error: cellTransport.error,
+                editing: this._getEditorString(contributingUsers, cellName),
             };
             this._document!.cells.set(cellName, cell);
         }
 
     }
+
+     /**
+     * Server selector for the fetch
+     */
+     setServerSelector(server: string): void {
+        if (server === this._server) {
+            return;
+        }
+        if (server === 'localhost') {
+            this._baseURL = `${LOCAL_SERVER_URL}:${this._serverPort}`;
+        } else {
+            this._baseURL = RENDER_SERVER_URL;
+        }
+        this.getDocument(this._documentName, this._userName);
+        this._server = server;
+
+    }
+
+     // utility function to get the user for the cell
+     private _getEditorString(contributingUsers: UserEditing[], cellLabel: string): string {
+        for (let user of contributingUsers) {
+            if (user.cell === cellLabel) {
+                return user.user;
+            }
+        }
+        return '';
+    }
+
 
 }
 

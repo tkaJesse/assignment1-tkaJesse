@@ -1,7 +1,6 @@
 import React from "react";
 import { ButtonNames } from "../Engine/GlobalDefinitions";
 
-
 import Button from "./Button";
 
 import "./KeyPad.css";
@@ -13,8 +12,11 @@ interface KeyPadProps {
   currentlyEditing: boolean;
 } // interface KeyPadProps
 
-function KeyPad({ onButtonClick, onCommandButtonClick, currentlyEditing }: KeyPadProps) {
-
+function KeyPad({
+  onButtonClick,
+  onCommandButtonClick,
+  currentlyEditing,
+}: KeyPadProps) {
   // the done button has two styles and two text values depending on currently Editing
   // if currentlyEditing is true then the button will have the class button-edit-end
   // and the text will be "="
@@ -34,7 +36,43 @@ function KeyPad({ onButtonClick, onCommandButtonClick, currentlyEditing }: KeyPa
   return (
     <div className="buttons">
       <div className="buttons-row">
-
+        <Button
+          text="1/x"
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="reverse-button"
+        />
+        <Button
+          text={ButtonNames.sqrt}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="sqrt-button"
+        />
+        <Button
+          text={ButtonNames.cubeRoot}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="cbrt-button"
+        />
+        <Button
+          text={ButtonNames.sqr}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="sqr-button"
+        />
+        <Button
+          text={ButtonNames.cube}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="cube-button"
+        />
+      </div>
+      <div className="buttons-row">
         <Button
           text="7"
           isDigit={true}
@@ -69,6 +107,20 @@ function KeyPad({ onButtonClick, onCommandButtonClick, currentlyEditing }: KeyPa
           onClick={() => onCommandButtonClick(ButtonNames.clear)}
           className="button-control"
           dataTestId="clear-button"
+        />
+        <Button
+          text={ButtonNames.negative}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="negative-button"
+        />
+        <Button
+          text={ButtonNames.rand}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="rand-button"
         />
       </div>
 
@@ -108,6 +160,20 @@ function KeyPad({ onButtonClick, onCommandButtonClick, currentlyEditing }: KeyPa
           className="button-operator"
           dataTestId="divide-button"
         />
+        <Button
+          text={ButtonNames.sin}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="sin-button"
+        />
+        <Button
+          text={ButtonNames.asin}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="asin-button"
+        />
       </div>
 
       <div className="buttons-row">
@@ -146,7 +212,20 @@ function KeyPad({ onButtonClick, onCommandButtonClick, currentlyEditing }: KeyPa
           className="button-operator"
           dataTestId="subtract-button"
         />
-
+        <Button
+          text={ButtonNames.cos}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="cos-button"
+        />
+        <Button
+          text={ButtonNames.acos}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="acos-button"
+        />
       </div>
 
       <div className="buttons-row">
@@ -182,11 +261,24 @@ function KeyPad({ onButtonClick, onCommandButtonClick, currentlyEditing }: KeyPa
           text={doneButtonText}
           isDigit={true}
           onClick={() => onCommandButtonClick(ButtonNames.edit_toggle)}
-          className={(getDoneButtonClass())}
+          className={getDoneButtonClass()}
           dataTestId="edit-toggle-button"
         />
+        <Button
+          text={ButtonNames.tan}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="tan-button"
+        />
+        <Button
+          text={ButtonNames.atan}
+          isDigit={false}
+          onClick={onButtonClick}
+          className="button-operator"
+          dataTestId="atan-button"
+        />
       </div>
-
     </div>
   );
 } // KeyPad

@@ -1,4 +1,4 @@
 export const PortsGlobal = {
-    serverPort: 3005,
+    serverPort: 3006,
     clientPort: 3000
 };

@@ -1,24 +1,17 @@
-/**
- * @jest-environment jsdom
- */
-import { Route,Routes } from "react-router-dom";
-import { useState, useEffect } from 'react';
-import './App.css';
-import SpreadSheet from './Components/SpreadSheet';
-import DocumentHolderPage from "./Components/DocumentHolderPage";
-import NavBar from "./Components/Navbar";
-import { Button } from "react-bootstrap";
+ 
+ import { useState, useEffect } from 'react';
+ import './../App.css';
+ import SpreadSheet from './SpreadSheet';
 
-function App() {
+ function MainSheetWithName() {
 
-
-  const [documentName, setDocumentName] = useState(getDocumentNameFromWindow());
+ const [documentName, setDocumentName] = useState(getDocumentNameFromWindow());
 
   useEffect(() => {
     if (window.location.href) {
       setDocumentName(getDocumentNameFromWindow());
     }
-  }, [window.location.href]);
+  }, [getDocumentNameFromWindow]);
 
 
 
@@ -33,8 +26,8 @@ function App() {
     // remove  the protocol 
     const protoEnd = href.indexOf('//');
     // find the beginning of the path
-    const pathStart = href.indexOf('/', protoEnd + 2);
-    console.log("path start is: ",href);
+    const pathStart = href.indexOf('/documents', protoEnd + 2);
+
     if (pathStart < 0) {
       // there is no path
       return '';
@@ -43,15 +36,10 @@ function App() {
     const docEnd = href.indexOf('/', pathStart + 1);
     if (docEnd < 0) {
       // there is no other slash
-      let newHref = href.substring(pathStart + 1);
-      console.log("new href is: ",newHref);
-      return newHref;
+      return href.substring(pathStart + 1);
     }
-
     // there is a slash
-    let newHref = href.substring(pathStart + 1, docEnd);
-    console.log("2new href is: ",newHref);
-    return newHref;
+    return href.substring(pathStart + 1, docEnd);
 
   }
 
@@ -73,24 +61,20 @@ function App() {
     resetURL('test');
   }
   console.log("docu name is: ",documentName);
-  return (
-    
-    <><Routes>
-      <Route path="/all" element={<DocumentHolderPage />} />
-    </Routes>
 
-                            <div className="App">
-                              <header className="App-header">
-                                {/* <SpreadSheet documentName={"test"} /> */}
-                                {/* <DocumentHolderPage/> */}
-                                <NavBar/>
-                                <SpreadSheet documentName={documentName}/>
-                              </header>
-                              </div>
+  return (
+    <>
+    <div className="App">
+        <header className="App-header">
+            <SpreadSheet documentName={documentName} />
+        </header>
+
+    </div>
+    
     </>
   );
 }
 
-export default App;
+export default MainSheetWithName;
 
 

@@ -247,7 +247,7 @@ export class DocumentHolder {
     public setWorkingCellByLabel(name: string, label: string): string {
         let document = this._documents.get(name);
         if (document) {
-            document.setWorkingCellByLabel(label);
+            document.getWorkingCellLabel(label);
             this._saveDocument(name);
             // get the json string for the controler
             const documentJSON = document.sheetToJSON();
@@ -256,26 +256,26 @@ export class DocumentHolder {
         throw new Error('Document not found');
     }
 
-    // TODO determine if needed
-    public getEditStatus(name: string, user: string): boolean {
-        let document = this._documents.get(name);
-        if (document) {
-            const editStatus = document.getEditStatus(user);
-            return editStatus;
-        }
-        throw new Error('Document not found');
-    }
+    // // TODO determine if needed
+    // public getEditStatus(name: string, user: string): boolean {
+    //     let document = this._documents.get(name);
+    //     if (document) {
+    //         const editStatus = document.getEditStatus(user);
+    //         return editStatus;
+    //     }
+    //     throw new Error('Document not found');
+    // }
 
 
-    // TODO determine if needed
-    public getEditStatusString(name: string, user: string): string {
-        let document = this._documents.get(name);
-        if (document) {
-            const editStatusString = document.getEditStatusString(user);
-            return editStatusString;
-        }
-        throw new Error('Document not found');
-    }
+    // // TODO determine if needed
+    // public getEditStatusString(name: string, user: string): string {
+    //     let document = this._documents.get(name);
+    //     if (document) {
+    //         const editStatusString = document.getEditStatusString(user);
+    //         return editStatusString;
+    //     }
+    //     throw new Error('Document not found');
+    // }
 
 
 

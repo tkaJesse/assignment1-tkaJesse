@@ -67,12 +67,15 @@ const documentHolder = new DocumentHolder();
 // GET /documents
 app.get('/documents', (req: express.Request, res: express.Response) => {
     const documentNames = documentHolder.getDocumentNames();
+    //console.log('backend get documents', documentNames);
     res.send(documentNames);
 });
 
 // PUT /documents/:name
 // userName is in the document body
 app.put('/documents/:name', (req: express.Request, res: express.Response) => {
+    //console.log('backend put documents req', req.params);
+    //console.log('backend put documents req body', req.body);
     const name = req.params.name;
     // get the userName from the body
     const userName = req.body.userName;
@@ -87,13 +90,14 @@ app.put('/documents/:name', (req: express.Request, res: express.Response) => {
 
 
     if (documentNames.indexOf(name) === -1) {
-        console.log(`Document ${name} not found, creating it`);
-        documentHolder.createDocument(name, 5, 8, userName);
+        alert("Document not found");
+        // console.log(`Document ${name} not found, creating it`);
+        // documentHolder.createDocument(name, 5, 8, userName);
     }
 
     // get the document
     const document = documentHolder.getDocumentJSON(name, userName);
-
+    console.log('document jsonn', document);
     res.status(200).send(document);
 });
 
@@ -177,16 +181,18 @@ app.put('/document/cell/view/:name/:cell', (req: express.Request, res: express.R
 app.put('/document/addtoken/:name/:token', (req: express.Request, res: express.Response) => {
     const name = req.params.name;
     const token = req.params.token;
+
     // is this name valid?
     const documentNames = documentHolder.getDocumentNames();
+    
     if (documentNames.indexOf(name) === -1) {
-        res.status(404).send(`Document ${name} not found`);
+        res.status(405).send(`Document ${name} not found`);
         return;
     }
     // get the user name from the body
     const userName = req.body.userName;
     if (!userName) {
-        res.status(400).send('userName is required');
+        res.status(403).send('userName is required');
         return;
     }
     // add the
