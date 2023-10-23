@@ -6,7 +6,6 @@ import SpreadSheetClient from "../Engine/SpreadSheetClient";
 import SheetHolder from "./SheetHolder";
 
 import { ButtonNames } from "../Engine/GlobalDefinitions";
-import ServerSelector from "./ServerSelector";
 
 
 interface SpreadSheetProps {
@@ -30,7 +29,6 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
   const [currentCell, setCurrentCell] = useState(spreadSheetClient.getWorkingCellLabel());
   const [currentlyEditing, setCurrentlyEditing] = useState(spreadSheetClient.getEditStatus());
   const [userName, setUserName] = useState(window.sessionStorage.getItem('userName') || "");
-  const [serverSelected, setServerSelected] = useState("localhost");
 
 
   function updateDisplayValues(): void {
@@ -71,14 +69,6 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
 
   }
 
-  function checkUserName(): boolean {
-    if (userName === "") {
-      alert("Please enter a user name");
-      return false;
-    }
-    return true;
-  }
-
   /**
    * 
    * @param event 
@@ -93,13 +83,10 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
    */
   async function onCommandButtonClick(text: string): Promise<void> {
 
-    if (!checkUserName()) {
-      return;
+    if (!userName || userName === "") {
+      nonLogonAlert();
     }
-
     switch (text) {
-
-
       case ButtonNames.edit_toggle:
         if (currentlyEditing) {
           spreadSheetClient.setEditStatus(false);
@@ -131,41 +118,23 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
    * 
    * */
   function onButtonClick(event: React.MouseEvent<HTMLButtonElement>): void {
-    if (!checkUserName()) {
-      return;
+    if (!userName || userName === "") {
+      nonLogonAlert();
     }
     const text = event.currentTarget.textContent;
     let trueText = text ? text : "";
-
-    if (text === ButtonNames.sqr) {
-      trueText = "sqr";
-    } else if (text === ButtonNames.cube) {
-      trueText = "cube";
-    } else if (text === ButtonNames.cubeRoot) {
-      trueText = "cuberoot";
-    } else if (text === ButtonNames.sqrt) {
-      trueText = "sqrt";
-    } else if (text === ButtonNames.asin) {
-      trueText = "asin";
-    } else if (text === ButtonNames.acos) {
-      trueText = "acos";
-    } else if (text === ButtonNames.atan) {
-      trueText = "atan";
-    }
-    
     spreadSheetClient.setEditStatus(true);
     spreadSheetClient.addToken(trueText);
 
     updateDisplayValues();
 
   }
-
-  // this is to help with development,  it allows us to select the server
-  function serverSelector(buttonName: string) {
-    setServerSelected(buttonName);
-    spreadSheetClient.setServerSelector(buttonName);
+  /**
+   * This function is called when a user tries to click cell without logging in
+   */
+  function nonLogonAlert(){
+    alert("You must logon to use this feature");
   }
-
 
   /**
    * 
@@ -176,10 +145,8 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
    * If the edit status is false then it will ask the machine to update the current formula.
    */
   function onCellClick(event: React.MouseEvent<HTMLButtonElement>): void {
-
-    if (userName === "") {
-      alert("Please enter a user name");
-      return;
+    if (!userName || userName === "") {
+      nonLogonAlert();
     }
     const cellLabel = event.currentTarget.getAttribute("cell-label");
     // calculate the current row and column of the clicked on cell
@@ -214,7 +181,6 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
         onCommandButtonClick={onCommandButtonClick}
         currentlyEditing={currentlyEditing}></KeyPad>
       {getUserLogin()}
-      <ServerSelector serverSelector={serverSelector} serverSelected={serverSelected} />
     </div>
   )
 };
