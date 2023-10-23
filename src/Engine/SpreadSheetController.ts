@@ -169,6 +169,7 @@ export class SpreadSheetController {
     }
 
     // add the token to the formula
+
     userData.formulaBuilder.addToken(token);
     let cellBeingEdited = this._contributingUsers.get(user)?.cellLabel;
 

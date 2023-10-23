@@ -109,6 +109,7 @@ class SpreadSheetClient {
         if (!this._document) {
             return '';
         }
+
         const formula = this._document.formula;
         if (formula) {
             return formula
@@ -120,7 +121,7 @@ class SpreadSheetClient {
         if (!this._document) {
             return '';
         }
-        console.log("thisd: ",this._document);
+        //console.log("thisd: ",this._document);
 
         const result = this._document.result;
         if (result) {
@@ -218,17 +219,28 @@ class SpreadSheetClient {
     public addToken(token: string): void {
         if (token === '/') {
             token = '%2F';
+        }else if (token === "1/x") {
+            token = "divideItself"
+        } else if (token === "+/-") {
+            token = "negate"
+        } else if (token === ".") {
+            token ="."
         }
+        const body = {
+            "userName": this._userName,
+            "token": token
+        };
         const requestAddTokenURL = `${this._baseURL}/document/addtoken/${this._documentName}/${token}`;
+        console.log("requestAddTokenURL", requestAddTokenURL);
         fetch(requestAddTokenURL, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ "userName": this._userName })
+            body: JSON.stringify(body)
         })
             .then(response => {
-
+                console.log("what",response);
                 return response.json() as Promise<DocumentTransport>;
             }
             ).then((document: DocumentTransport) => {
@@ -335,7 +347,7 @@ class SpreadSheetClient {
         // put the user name in the body
         const userName = user;
         const fetchURL = `${this._baseURL}/documents/${name}`;
-        console.log("fetchURL2222", fetchURL);
+        // console.log("fetchURL2222", fetchURL);
         fetch(fetchURL, {
             method: 'PUT',
             headers: {
