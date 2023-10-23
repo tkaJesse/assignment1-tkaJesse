@@ -123,6 +123,27 @@ function SpreadSheet({ documentName }: SpreadSheetProps) {
     }
     const text = event.currentTarget.textContent;
     let trueText = text ? text : "";
+
+    if (text === ButtonNames.sqr) {
+      trueText = "sqr";
+    } else if (text === ButtonNames.cube) {
+      trueText = "cube";
+    } else if (text === ButtonNames.cubeRoot) {
+      trueText = "cuberoot";
+    } else if (text === ButtonNames.sqrt) {
+      trueText = "sqrt";
+    } else if (text === ButtonNames.asin) {
+      trueText = "asin";
+    } else if (text === ButtonNames.acos) {
+      trueText = "acos";
+    } else if (text === ButtonNames.atan) {
+      trueText = "atan";
+    } else if (text === "1/x") {
+      trueText = "1/x";
+    } else if (text === "+/-") {
+      trueText = "+/-";
+    }
+
     spreadSheetClient.setEditStatus(true);
     spreadSheetClient.addToken(trueText);
 

@@ -114,7 +114,7 @@ class SpreadSheetClient {
         if (!this._document) {
             return '';
         }
-        console.log("thisd: ",this._document);
+        // console.log("thisd: ",this._document);
 
         const result = this._document.result;
         if (result) {
@@ -210,9 +210,14 @@ class SpreadSheetClient {
 
 
     public addToken(token: string): void {
-        if (token === '/') {
-            token = '%2F';
+        if (token === "/") {
+            token = "%2F";
+        } else if (token === "1/x") {
+            token = "divideItself"
+        } else if (token === "+/-") {
+            token = "negate"
         }
+
         const requestAddTokenURL = `${this._baseURL}/document/addtoken/${this._documentName}/${token}`;
         fetch(requestAddTokenURL, {
             method: 'PUT',
