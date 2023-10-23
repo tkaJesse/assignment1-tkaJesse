@@ -8,10 +8,10 @@
  * getDocument(name: string, user: string): Promise<Document>
  */
 
-import { DocumentTransport, CellTransport, CellTransportMap, ErrorMessages } from '../Engine/GlobalDefinitions';
+import { DocumentTransport, CellTransport, CellTransportMap, ErrorMessages, UserEditing } from '../Engine/GlobalDefinitions';
 import { Cell } from '../Engine/Cell';
 
-import { PortsGlobal } from '../PortsGlobal';
+import { PortsGlobal, LOCAL_SERVER_URL, RENDER_SERVER_URL } from '../ServerDataDefinitions';
 
 
 
@@ -21,12 +21,13 @@ class SpreadSheetClient {
     private _userName: string = 'juancho';
     private _documentName: string = 'test';
     private _document: DocumentTransport;
+    private _server: string = '';
 
     constructor(documentName: string, userName: string) {
         this._userName = userName;
         this._documentName = documentName;
-        this.getDocument(this._documentName, this._userName);
-
+        //this.getDocument(this._documentName, this._userName);
+        this.setServerSelector('localhost');
         this._document = this._initializeBlankDocument();
         this._timedFetch(this._documentName);
     }
@@ -40,6 +41,7 @@ class SpreadSheetClient {
             currentCell: 'A1',
             isEditing: false,
             cells: new Map<string, CellTransport>(),
+            contributingUsers: [],
         };
         for (let row = 0; row < document.rows; row++) {
             for (let column = 0; column < document.columns; column++) {
@@ -48,6 +50,7 @@ class SpreadSheetClient {
                     formula: [],
                     value: 0,
                     error: ErrorMessages.emptyFormula,
+                    editing: '',
                 };
                 document.cells.set(cellName, cell);
             }
@@ -76,7 +79,7 @@ class SpreadSheetClient {
                 fetch(url, options)
                     .then(response => {
                         this.getDocument(this._documentName, this._userName);
-                        //this._timedFetch(this._documentName);
+                        this._timedFetch(this._documentName);
                         resolve(response);
                     })
                     .catch(error => {
@@ -153,7 +156,7 @@ class SpreadSheetClient {
                 const cellName = Cell.columnRowToCell(column, row)!;
                 const cell = cells.get(cellName) as CellTransport;
                 if (cell) {
-                    sheetDisplayStrings[row][column] = this._getCellValue(cell);
+                    sheetDisplayStrings[row][column] = this._getCellValue(cell) + "|" + cell.editing;
                 } else {
                     sheetDisplayStrings[row][column] = 'xxx';
                 }
@@ -357,6 +360,7 @@ class SpreadSheetClient {
         const columns = document.columns;
         const rows = document.rows;
         const isEditing = document.isEditing;
+        const contributingUsers = document.contributingUsers;
 
 
 
@@ -364,12 +368,12 @@ class SpreadSheetClient {
         this._document = {
             formula: formula,
             result: result,
-
             currentCell: currentCell,
             columns: columns,
             rows: rows,
             isEditing: isEditing,
             cells: new Map<string, CellTransport>(),
+            contributingUsers: contributingUsers,
         };
         // create the cells
         const cells = document.cells as unknown as CellTransportMap;
@@ -382,11 +386,40 @@ class SpreadSheetClient {
                 formula: cellTransport.formula,
                 value: cellTransport.value,
                 error: cellTransport.error,
+                editing: this._getEditorString(contributingUsers, cellName),
             };
             this._document!.cells.set(cellName, cell);
         }
 
     }
+
+     /**
+     * Server selector for the fetch
+     */
+     setServerSelector(server: string): void {
+        if (server === this._server) {
+            return;
+        }
+        if (server === 'localhost') {
+            this._baseURL = `${LOCAL_SERVER_URL}:${this._serverPort}`;
+        } else {
+            this._baseURL = RENDER_SERVER_URL;
+        }
+        this.getDocument(this._documentName, this._userName);
+        this._server = server;
+
+    }
+
+     // utility function to get the user for the cell
+     private _getEditorString(contributingUsers: UserEditing[], cellLabel: string): string {
+        for (let user of contributingUsers) {
+            if (user.cell === cellLabel) {
+                return user.user;
+            }
+        }
+        return '';
+    }
+
 
 }
 

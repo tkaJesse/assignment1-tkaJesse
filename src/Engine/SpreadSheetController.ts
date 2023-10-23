@@ -76,122 +76,79 @@ export class SpreadSheetController {
   }
 
   requestViewAccess(user: string, cellLabel: string) {
-    // if the user is not in the list of users then we will add them with an unasigned cell
-    let userData: ContributingUser;
     // if it does not exist them make and give view access
+    let userData: ContributingUser;
+
     if (!this._contributingUsers.has(user)) {
-      let userData = new ContributingUser(cellLabel)
-      userData.isEditing = false;
-      this._contributingUsers.set(user, userData);
-      userData.formulaBuilder.setFormula(this._memory.getCellByLabel(cellLabel).getFormula());
-      return;
+      userData = new ContributingUser(cellLabel)
+
+    } else {
+      userData = this._contributingUsers.get(user)!;
+      userData.cellLabel = cellLabel;
     }
 
-    // Get the user since we know the user is there.
-    userData = this._contributingUsers.get(user)!;
-    if (!userData) {
-      throw new Error("user not found");
-    }
-    // if the user is editing/viewing this cell then there is nothing to do
-    let currentCellLabel = this._contributingUsers.get(user)?.cellLabel;
-    if (currentCellLabel === cellLabel) {
-      userData.isEditing = false;
-      // if this cell was being edited by the user then free it up
-      if (this._cellsBeingEdited.has(cellLabel)) {
-        this._cellsBeingEdited.delete(cellLabel);
-      }
-      // clean up the cell being edited
-      return;
-    }
-
-    // if the user is editing a cell then free that one up
-    if (userData.cellLabel !== '') {
-      if (this._cellsBeingEdited.has(userData.cellLabel)) {
-        this._cellsBeingEdited.delete(userData.cellLabel);
-      }
-    }
-    // set the cell that the user is viewing
-    userData.cellLabel = cellLabel;
-    userData.formulaBuilder.setFormula(this._memory.getCellByLabel(cellLabel).getFormula());
-
-    // update the user data 
+    this.releaseEditAccess(user);
+    userData.isEditing = false;
     this._contributingUsers.set(user, userData);
-
+    userData.formulaBuilder.setFormula(this._memory.getCellByLabel(cellLabel).getFormula());
   }
 
 
 
   requestEditAccess(user: string, cellLabel: string): boolean {
-    // if the user is not an editor then we will first add them as a viewer
-    // this will release previous cell that they were editing
-    let userData = this._contributingUsers.get(user);
 
-    if (userData?.cellLabel !== cellLabel) {
-      this.requestViewAccess(user, cellLabel);
+    // is the user a contributingUser for this document. // this is for testing
+    if (!this._contributingUsers.has(user)) {
+      throw new Error('User is not a contributing user, this should not happen for a request to edit');
     }
 
-    // if the cell is being edited by the user then return true
-    if (this._cellsBeingEdited.has(cellLabel) && this._cellsBeingEdited.get(cellLabel) === user) {
+    // now we know that the user is a viewer for sure and this line will succeed
+    let userData = this._contributingUsers.get(user);
+
+    // Is the user editing another cell? If so then release the other cell
+    if (userData!.isEditing && userData!.cellLabel !== cellLabel) {
+      this.releaseEditAccess(user);
+    }
+
+    // at this point the user is a contributing user and is not editing another cell
+    // make them a viewer of this cell
+    userData!.cellLabel = cellLabel;
+
+    // if the cell is not being edited then we can edit it
+    if (!this._cellsBeingEdited.has(cellLabel)) {
+      userData!.isEditing = true;
+      this._cellsBeingEdited.set(cellLabel, user);
       return true;
     }
 
-    // if the cell is being edited by another user return false
-    const userEditingThisCell = this._cellsBeingEdited.get(cellLabel);
-    if (userEditingThisCell && userEditingThisCell !== user) {
-      return false;
+    // if the cell is being edited by this user then return true
+    if (this._cellsBeingEdited.get(cellLabel) === user) {
+      return true;
     }
 
+    // at this point we cannot assign the user as an editor
 
-    if (this._cellsBeingEdited.has(cellLabel) && this._cellsBeingEdited.get(cellLabel) !== user) {
-      return false;
-    }
-
-    // if the user is editing another cell then free that one up
-    if (this._contributingUsers.has(user)) {
-      const userData = this._contributingUsers.get(user);
-      if (!userData) {
-        throw new Error("user not found");
-      }
-
-      if (userData.cellLabel !== '' && userData.cellLabel !== cellLabel) {
-        this._cellsBeingEdited.delete(userData.cellLabel);
-      }
-    }
-
-    // now we know we can assign the ownership of the cell to the user
-    this._cellsBeingEdited.set(cellLabel, user);
-    const userEditing = this._contributingUsers.get(user);
-
-    // lets make sure the user can edit the cell and the formulaBUilder is up to date
-    if (userEditing) {
-
-      userEditing.isEditing = true;
-    } else {
-      throw new Error("user not found");
-    }
-    return true;
-
-
+    return false;
   }
 
 
 
   releaseEditAccess(user: string): void {
-    // if the user is not in the list of users then there is nothing to do
-    if (!this._contributingUsers.has(user)) {
+    // if the user is not editing a cell then we are done
+    if (!this._contributingUsers.get(user)?.isEditing) {
       return;
     }
 
-    // if the user is editing a cell then free that one up
-    const editingCell = this._contributingUsers.get(user)?.cellLabel;
+    const editingCell: string | undefined = this._contributingUsers.get(user)?.cellLabel;
     if (editingCell) {
       if (this._cellsBeingEdited.has(editingCell)) {
         this._cellsBeingEdited.delete(editingCell);
       }
     }
 
-    // remove the user from the list of users
-    this._contributingUsers.delete(user);
+    // // remove the user from the list of users
+    // this._contributingUsers.delete(user);
+
   }
 
 
@@ -205,25 +162,21 @@ export class SpreadSheetController {
    * 
    */
   addToken(token: string, user: string): void {
-
-
+    // is the user editing a cell
     const userData = this._contributingUsers.get(user)!;
     if (!userData.isEditing) {
       return;
     }
 
-
+    // add the token to the formula
     userData.formulaBuilder.addToken(token);
     let cellBeingEdited = this._contributingUsers.get(user)?.cellLabel;
 
-    // this should not empty but just in case throw error
-    if (cellBeingEdited) {
-      let cell = this._memory.getCellByLabel(cellBeingEdited);
-      cell.setFormula(userData.formulaBuilder.getFormula());
-      this._memory.setCellByLabel(cellBeingEdited, cell);
-    } else {
-      throw new Error("cell not found");
-    }
+
+    let cell = this._memory.getCellByLabel(cellBeingEdited!);
+    cell.setFormula(userData.formulaBuilder.getFormula());
+    this._memory.setCellByLabel(cellBeingEdited!, cell);
+
     this._calculationManager.evaluateSheet(this._memory);
   }
 
@@ -241,23 +194,21 @@ export class SpreadSheetController {
   addCell(cellReference: string, user: string): void {
 
     // is the user editing a cell
-    const userEditing = this._contributingUsers.get(user);
-    if (!userEditing) {
-      return;
-    }
-    if (userEditing.cellLabel === '') {
+    const userEditing = this._contributingUsers.get(user)
+
+    // If the user is not editing then we are done
+    if (!userEditing!.isEditing) {
       return;
     }
 
     // if the cell being edited is the same as the cell being inserted then do nothing
-    if (cellReference === userEditing.cellLabel) {
+    if (cellReference === userEditing!.cellLabel) {
       return;
     }
 
-
-
-    let currentCell: Cell = this._memory.getCellByLabel(userEditing.cellLabel)
-    let currentLabel = userEditing.cellLabel;
+    // add the cell reference to the formula
+    let currentCell: Cell = this._memory.getCellByLabel(userEditing!.cellLabel)
+    let currentLabel = userEditing!.cellLabel;
 
     // Check to see if we would be introducing a circular dependency
     // this function will update the dependency for the cell being inserted
@@ -281,67 +232,39 @@ export class SpreadSheetController {
 
   removeToken(user: string): void {
     const userEditing = this._contributingUsers.get(user);
-    if (!userEditing) {
-      return;
-    }
-    if (userEditing.cellLabel === '') {
-      return;
-    }
 
-    userEditing.formulaBuilder.removeToken();
+    userEditing!.formulaBuilder.removeToken();
     let cellBeingEdited = this._contributingUsers.get(user)?.cellLabel;
 
-    // this should not empty but just in case throw error
-    if (cellBeingEdited) {
-      let cell = this._memory.getCellByLabel(cellBeingEdited);
-      cell.setFormula(userEditing.formulaBuilder.getFormula());
-      this._memory.setCellByLabel(cellBeingEdited, cell);
-    } else {
-      throw new Error("cell not found");
-    }
+    let cell = this._memory.getCellByLabel(cellBeingEdited!);
+    cell.setFormula(userEditing!.formulaBuilder.getFormula());
+    this._memory.setCellByLabel(cellBeingEdited!, cell);
+
     this._calculationManager.evaluateSheet(this._memory);
   }
 
   /**
    * 
-   * clear the current formula
+   * clear the current formula only the owner can 
    * 
    */
   clearFormula(user: string): void {
-    if (!this._contributingUsers.has(user)) {
-      alert("no user found");
-      return;
-    }
+
     const userEditing = this._contributingUsers.get(user);
-    if (!userEditing) {
-      alert("user not editing");
+    if (!userEditing || !userEditing!.isEditing) {
       return;
     }
-    if (userEditing.cellLabel === '') {
-      alert("no cell label");
-      return;
-    }
-    console.log('clear formula: spreadsheetcontroller');
-    userEditing.formulaBuilder.setFormula([]);
+
+    userEditing!.formulaBuilder.setFormula([]);
     let cellBeingEdited = this._contributingUsers.get(user)?.cellLabel;
 
     // this should not empty but just in case throw error
     if (cellBeingEdited) {
       let cell = this._memory.getCellByLabel(cellBeingEdited);
-      cell.setFormula(userEditing.formulaBuilder.getFormula());
+      cell.setFormula(userEditing!.formulaBuilder.getFormula());
       this._memory.setCellByLabel(cellBeingEdited, cell);
     }
     this._calculationManager.evaluateSheet(this._memory);
-  }
-
-  /**
-   *  Get the formula as a string
-   *  
-   * @returns the formula as a string
-   * 
-   * */
-  getFormulaString(): string {
-    return this._formulaBuilder.getFormulaString();
   }
 
   /**
@@ -356,29 +279,13 @@ export class SpreadSheetController {
    */
   getFormulaStringForUser(user: string): string {
     const userData = this._contributingUsers.get(user);
-    if (!userData) {
-      return '';
-    }
+
     // get the data from the cell, it is the authority
-    const cell = this._memory.getCellByLabel(userData.cellLabel);
+    const cell = this._memory.getCellByLabel(userData!.cellLabel);
     // update the formulaBuilder (if this is a watcher then it updates from the cell)
-    userData.formulaBuilder.setFormula(cell.getFormula());
-    const formula = userData.formulaBuilder.getFormulaString();
+    userData!.formulaBuilder.setFormula(cell.getFormula());
+    const formula = userData!.formulaBuilder.getFormulaString();
     return formula;
-  }
-
-
-  /** 
-   * Get the formula as a value (formatted to a string)
-   *  
-   * @returns the formula as a value:string 
-   * 
-   * */
-  getResultString(): string {
-    let currentWorkingCell = this._memory.getCurrentCell();
-    let displayString = currentWorkingCell.getDisplayString();
-
-    return displayString;
   }
 
   /**
@@ -390,26 +297,11 @@ export class SpreadSheetController {
    */
   getResultStringForUser(user: string): string {
     const userEditing = this._contributingUsers.get(user);
-    if (!userEditing) {
-      return '';
-    }
-    let cell = this._memory.getCellByLabel(userEditing.cellLabel);
 
+    let cell = this._memory.getCellByLabel(userEditing!.cellLabel);
     let displayString = cell.getDisplayString();
 
     return displayString;
-  }
-
-  /** 
-   * set the working cell by label
-   * 
-   * @param label:string
-   * 
-   * 
-   */
-  setWorkingCellByLabel(label: string): void {
-    const [column, row] = Cell.cellToColumnRow(label);
-    this.setWorkingCellByCoordinates(column, row);
   }
 
 
@@ -421,137 +313,46 @@ export class SpreadSheetController {
    */
   getWorkingCellLabel(user: string): string {
     const userEditing = this._contributingUsers.get(user);
-    if (!userEditing) {
-      return '';
-    }
-    return userEditing.cellLabel;
+
+    return userEditing!.cellLabel;
 
   }
-
-  /**
-   * Set the working cell
-   * 
-   * @param row:number ß
-   * @param column:number
-   * 
-   * save the formula that is in the formulaBuilder to the current cell
-   * 
-   * copy the formula from the new cell into the formulaBuilder
-   * 
-   * */
-  setWorkingCellByCoordinates(column: number, row: number): void {
-    // if the cell is the same as the current cell do nothing
-    if (column === this._currentWorkingColumn && row === this._currentWorkingRow) return;
-
-    // get the current formula from the formula builder
-    let currentFormula = this._formulaBuilder.getFormula();
-    this._memory.setCurrentCellFormula(currentFormula);
-
-    // get the formula from the new cell
-    this._memory.setWorkingCellByCoordinates(column, row);
-    currentFormula = this._memory.getCurrentCellFormula();
-    this._formulaBuilder.setFormula(currentFormula);
-
-    this._currentWorkingColumn = column;
-    this._currentWorkingRow = row;
-
-    this._memory.setWorkingCellByCoordinates(column, row);
-
-  }
-
-  /**
-    * Get the Sheet Display Values
-    * the GUI needs the data to be in row major order
-    * 
-    * @returns string[][]
-    */
-  public getSheetDisplayStringsForGUI(): string[][] {
-    this._calculationManager.updateComputationOrder(this._memory);
-    this._calculationManager.evaluateSheet(this._memory);
-
-    let memoryDisplayValues = this._memory.getSheetDisplayStrings();
-    let guiDisplayValues: string[][] = [];
-    let inputRows = memoryDisplayValues.length;
-    let inputColumns = memoryDisplayValues[0].length;
-
-    for (let outputRow = 0; outputRow < inputColumns; outputRow++) {
-      guiDisplayValues[outputRow] = [];
-      for (let outputColumn = 0; outputColumn < inputRows; outputColumn++) {
-        guiDisplayValues[outputRow][outputColumn] = memoryDisplayValues[outputColumn][outputRow];
-      }
-    }
-
-
-    return guiDisplayValues;
-
-  }
-
-
 
 
   /**
-   * The edit status of the machine specifies what happens when a cell is clicked
    * 
-   * @returns boolean
-   * 
-   * */
-  public getEditStatus(user: string): boolean {
-
-    if (!this._contributingUsers.has(user)) {
-      return false;
-    }
-    const userEditing = this._contributingUsers.get(user);
-    if (!userEditing) {
-      return false;
-    }
-    let cellBeingEditedLabel = userEditing.cellLabel;
-    if (cellBeingEditedLabel === '') {
-      return false;
-    }
-    return true;
-  }
-
-
-
-  /**
-   * Get the edit status string
-   *  
-   * @returns string
-   * 
-   * */
-  public getEditStatusString(user: string): string {
-    if (!this._contributingUsers.has(user)) {
-      return "browsing";
-    }
-    const userEditing = this._contributingUsers.get(user);
-    if (!userEditing) {
-      return "browsing";
-    }
-
-    if (userEditing.cellLabel === '') {
-      return "browsing";
-    }
-
-    return "editing: " + userEditing.cellLabel;
-  }
-
-
+   * @param user 
+   * @returns 
+   */
   public documentContainer(user: string): any {
     // get the current formula for the cell of this user
     let container = this._memory.sheetContainer();
 
-    // for the purposes of this simple demo we will add the user if they are not present
-
+    // if the user is not a contributing user we request view access to A1
     if (!this._contributingUsers.has(user)) {
       this.requestViewAccess(user, 'A1');
     }
-
     let userData = this._contributingUsers.get(user)!;
     let cellFocused = userData.cellLabel;
     container.currentCell = cellFocused;
     container.formula = this.getFormulaStringForUser(user);
     container.result = this.getResultStringForUser(user);
     container.isEditing = userData.isEditing;
+
+
+    // find where user being editing are
+    container.contributingUsers = [];
+    this._contributingUsers.forEach((value: ContributingUser, key: string) => {
+      let user = {
+        user: key,
+        cell: value.cellLabel,
+        isEditing: value.isEditing
+      }
+      if (value.isEditing) {
+        container.contributingUsers.push(user);
+      }
+    });
+
     return container;
   }
 
